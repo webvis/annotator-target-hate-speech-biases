@@ -2,25 +2,37 @@
 toc: false
 ---
 
-<div class="grid grid-cols-3">
-  <div class="aside"><h1>Annotator-Target Hate Speech Biases</h1></div>
-  <div>${resize((width) => matrix_chart({width}))}</div>
-  <div>Wa</div>
+<div class="grid grid-cols-4">
+  <div class="aside">
+    <h2>Annotator-Target Hate Speech Biases</h2>
+    <div class="authors">Author One, Author Two, Author Three, Author Four</div>
+    <hr/>
+    ${filter_rows_input}
+    ${filter_cols_input}
+    <hr/>
+    ${options_input}
+    <hr/>
+    ${row_clustering_input}
+    <hr/>
+    ${col_clustering_input}
+  </div>
+  <div class="grid-colspan-3">${resize((width) => matrix_chart({width}))}</div>
 </div>
 
 <!-- Load and transform the data -->
 
 ```js
 const csv = await FileAttachment("data/metrics.csv").csv({typed: true})
-let raw_data = csv.map(d => ({...d, matrix_total: d.FF+d.FM+d.FT+d.MF+d.MM+d.MT+d.TF+d.TM+d.TT}))
-raw_data.columns = csv.columns.concat(['matrix_total'])
+let data = csv.map(d => ({...d, matrix_total: d.FF+d.FM+d.FT+d.MF+d.MM+d.MT+d.TF+d.TM+d.TT}))
+data.columns = csv.columns.concat(['matrix_total'])
 ```
 ```js
-const options = view(Inputs.form({
+const options_input = Inputs.form({
   variable: Inputs.select(['intensity','prevalence','cohen_k','total'], {value: 'intensity', label: "Color by"}),
   size_variable: Inputs.select(['intensity','prevalence','cohen_k','total'], {value: 'prevalence', label: "Scale by"}),
   clustering_variable: Inputs.select(['intensity','prevalence','cohen_k','total'], {value: 'intensity', label: "Cluster by"}),
-}))
+})
+const options = view(options_input)
 ```
 
 ```js
@@ -156,9 +168,19 @@ function matrix_chart({width} = {}) {
 ```
 
 <style>
+  body {
+    font-family: sans-serif;
+  }
   .aside {
     background: rgb(241, 239, 229);
     padding: 12px;
+  }
+  hr {
+    padding: 12px;
+    margin: 0;
+  }
+  .authors {
+    font-size: 12px;
   }
   .label {
     user-select: none;
@@ -181,28 +203,33 @@ function matrix_chart({width} = {}) {
 
 
 ```js
-const row_clustering = view(Inputs.form({
+const row_clustering_input = Inputs.form({
   enabled: Inputs.toggle({label: "Cluster rows", value: true}),
   distance_metric: Inputs.select(Object.keys(distance), {value: "euclidean", label: "Distance Metric"}),
   method: Inputs.select(["ward","ward2","single", "complete", "average","upgma", "wpgma", "upgmc","wpgmc","median","centroid"], {value: "complete", label: "Cluster Method"})
-}))
-const col_clustering = view(Inputs.form({
+})
+const row_clustering = view(row_clustering_input)
+const col_clustering_input = Inputs.form({
   enabled: Inputs.toggle({label: "Cluster columns", value: true}),
   distance_metric: Inputs.select(Object.keys(distance), {value: "euclidean", label: "Distance Metric"}),
   method: Inputs.select(["ward","ward2","single", "complete", "average","upgma", "wpgma", "upgmc","wpgmc","median","centroid"], {value: "complete", label: "Cluster Method"})
-}))
+})
+const col_clustering = view(col_clustering_input)
 ```
 
 ```js
-const data = view(Inputs.search(raw_data, {placeholder:'Filter'}))
+const filter_rows_input = Inputs.search(all_rows, {placeholder:'Filter annotators'})
+const rows = view(filter_rows_input)
+const filter_cols_input = Inputs.search(all_columns, {placeholder:'Filter targets'})
+const columns = view(filter_cols_input)
 ```
 ```js
 // preprocess data
 const variables = data.columns.filter(d => !(['target', 'annotator'].includes(d)))
 const indexed_rows = d3.group(data, d => d.annotator, d => d.target)
 const indexed_cols = d3.group(data, d => d.target, d => d.annotator)
-const rows = Array.from(indexed_rows.keys())
-const columns = Array.from(indexed_cols.keys())
+const all_rows = Array.from(indexed_rows.keys())
+const all_columns = Array.from(indexed_cols.keys())
 ```
 
 ```js
@@ -259,10 +286,6 @@ const config = ({
       .interpolator(t => d3.interpolateMagma(1-t)),
   }
 })
-```
-
-```js
-Inputs.table(data)
 ```
 
 ```js
