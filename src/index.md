@@ -16,9 +16,7 @@ toc: false
     <hr/>
     ${col_clustering_input}
   </div>
-  <div class="chart grid-colspan-3">
-    ${resize((width) => matrix_chart({width}))}
-  </div>
+  <div class="chart grid-colspan-3">${resize((width) => matrix_chart({width}))}</div>
 </div>
 
 <!-- Load and transform the data -->
@@ -148,7 +146,7 @@ function matrix_chart({width} = {}) {
       .style('font-size', `${Math.floor(options.cell_size*0.6)}px`)
       .attr('x', -4)
       .attr("y", (d, i) => y(i)+options.cell_size*0.7)
-      .text(d => d.split('_').slice(1).const Legend = await import("https://cdn.skypack.dev/d3-color-legend")join(' '))
+      .text(d => d.split('_').slice(1).join(' '))
       //.attr("fill", d => core.includes(d) ? 'brown' : '#444')
     .append('title')
       .text(d => d)
@@ -355,10 +353,6 @@ const distances = {
   'jaccard': ml_distance.distance.jaccard,
   'cosine': (a,b) => 1 - ml_distance.similarity.cosine(a,b),
 }
-```
-
-```js
-Legend
 ```
 
 ```js
