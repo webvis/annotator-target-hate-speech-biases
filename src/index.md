@@ -16,7 +16,7 @@ toc: false
     <hr/>
     ${col_clustering_input}
   </div>
-  <div class="grid-colspan-3">${resize((width) => matrix_chart({width}))}</div>
+  <div class="chart grid-colspan-3">${resize((width) => matrix_chart({width}))}</div>
 </div>
 
 <!-- Load and transform the data -->
@@ -171,7 +171,12 @@ function matrix_chart({width} = {}) {
   body {
     font-family: sans-serif;
   }
+  #observablehq-center, #observablehq-main, .grid {
+    padding: 0;
+    margin: 0;
+  }
   .aside {
+    margin: 12px;
     background: rgb(241, 239, 229);
     padding: 12px;
   }
@@ -181,6 +186,9 @@ function matrix_chart({width} = {}) {
   }
   .authors {
     font-size: 12px;
+  }
+  .chart {
+    padding: 12px;
   }
   .label {
     user-select: none;
