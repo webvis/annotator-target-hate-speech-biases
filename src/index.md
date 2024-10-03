@@ -28,9 +28,9 @@ data.columns = csv.columns.concat(['matrix_total'])
 ```
 ```js
 const options_input = Inputs.form({
-  variable: Inputs.select(['intensity','prevalence','cohen_k','total'], {value: 'intensity', label: "Color by"}),
-  size_variable: Inputs.select(['intensity','prevalence','cohen_k','total'], {value: 'prevalence', label: "Scale by"}),
-  clustering_variable: Inputs.select(['intensity','prevalence','cohen_k','total'], {value: 'intensity', label: "Cluster by"}),
+  variable: Inputs.select(['intensity','prevalence','cohen_k','matrix_total'], {value: 'intensity', label: "Color by"}),
+  size_variable: Inputs.select(['intensity','prevalence','cohen_k','matrix_total'], {value: 'prevalence', label: "Scale by"}),
+  clustering_variable: Inputs.select(['intensity','prevalence','cohen_k','matrix_total'], {value: 'intensity', label: "Cluster by"}),
 })
 const options = view(options_input)
 ```
@@ -279,10 +279,10 @@ const config = ({
       .domain([0, 1])
       .interpolator(t => d3.interpolateMagma(1-t)),
   },
-  total: {
+  matrix_total: {
     no_data: 0,
     color_scale: d3.scaleSequential()
-      .domain([0, 1000000])
+      .domain([0, d3.max(data, d => d.matrix_total)])
       .interpolator(t => d3.interpolateMagma(1-t)),
   }
 })
@@ -298,7 +298,7 @@ const tooltip_data = d => ({
     intensity: tooltip_value_format(d.intensity),
     prevalence: tooltip_value_format(d.prevalence),
     cohen_k: tooltip_value_format(d.cohen_k),
-    total: tooltip_value_format(d.total),
+    matrix_total: tooltip_value_format(d.matrix_total),
   }
 })
 
