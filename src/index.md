@@ -2,110 +2,317 @@
 toc: false
 ---
 
-<div class="hero">
-  <h1>Annotator-Target Hate Speech Biases</h1>
-  <h2>Welcome to your new app! Edit&nbsp;<code style="font-size: 90%;">src/index.md</code> to change this page.</h2>
-  <a href="https://observablehq.com/framework/getting-started">Get started<span style="display: inline-block; margin-left: 0.25rem;">↗︎</span></a>
+<div class="grid grid-cols-3">
+  <div class="aside"><h1>Annotator-Target Hate Speech Biases</h1></div>
+  <div>${resize((width) => matrix_chart({width}))}</div>
+  <div>Wa</div>
 </div>
 
-<div class="grid grid-cols-2" style="grid-auto-rows: 504px;">
-  <div class="card">${
-    resize((width) => Plot.plot({
-      title: "Your awesomeness over time 🚀",
-      subtitle: "Up and to the right!",
-      width,
-      y: {grid: true, label: "Awesomeness"},
-      marks: [
-        Plot.ruleY([0]),
-        Plot.lineY(aapl, {x: "Date", y: "Close", tip: true})
-      ]
-    }))
-  }</div>
-  <div class="card">${
-    resize((width) => Plot.plot({
-      title: "How big are penguins, anyway? 🐧",
-      width,
-      grid: true,
-      x: {label: "Body mass (g)"},
-      y: {label: "Flipper length (mm)"},
-      color: {legend: true},
-      marks: [
-        Plot.linearRegressionY(penguins, {x: "body_mass_g", y: "flipper_length_mm", stroke: "species"}),
-        Plot.dot(penguins, {x: "body_mass_g", y: "flipper_length_mm", stroke: "species", tip: true})
-      ]
-    }))
-  }</div>
-</div>
+<!-- Load and transform the data -->
 
----
+```js
+const csv = await FileAttachment("data/metrics.csv").csv({typed: true})
+let raw_data = csv.map(d => ({...d, matrix_total: d.FF+d.FM+d.FT+d.MF+d.MM+d.MT+d.TF+d.TM+d.TT}))
+raw_data.columns = csv.columns.concat(['matrix_total'])
+```
+```js
+const options = view(Inputs.form({
+  variable: Inputs.select(['intensity','prevalence','cohen_k','total'], {value: 'intensity', label: "Color by"}),
+  size_variable: Inputs.select(['intensity','prevalence','cohen_k','total'], {value: 'prevalence', label: "Scale by"}),
+  clustering_variable: Inputs.select(['intensity','prevalence','cohen_k','total'], {value: 'intensity', label: "Cluster by"}),
+}))
+```
 
-## Next steps
+```js
+// layout
+const cellSize = 12
+const margin = ({ top: 90, right: 1, bottom: 10, left: 90 })
+const height = rows.length*cellSize + margin.top + margin.bottom
+```
 
-Here are some ideas of things you could try…
+```js
+function matrix_chart({width} = {}) {
+  // Create an HTML container to hold the tooltip
+  const container = d3.select(
+    html`<div style="position:relative;"></div>`
+  )
 
-<div class="grid grid-cols-4">
-  <div class="card">
-    Chart your own data using <a href="https://observablehq.com/framework/lib/plot"><code>Plot</code></a> and <a href="https://observablehq.com/framework/files"><code>FileAttachment</code></a>. Make it responsive using <a href="https://observablehq.com/framework/javascript#resize(render)"><code>resize</code></a>.
-  </div>
-  <div class="card">
-    Create a <a href="https://observablehq.com/framework/project-structure">new page</a> by adding a Markdown file (<code>whatever.md</code>) to the <code>src</code> folder.
-  </div>
-  <div class="card">
-    Add a drop-down menu using <a href="https://observablehq.com/framework/inputs/select"><code>Inputs.select</code></a> and use it to filter the data shown in a chart.
-  </div>
-  <div class="card">
-    Write a <a href="https://observablehq.com/framework/loaders">data loader</a> that queries a local database or API, generating a data snapshot on build.
-  </div>
-  <div class="card">
-    Import a <a href="https://observablehq.com/framework/imports">recommended library</a> from npm, such as <a href="https://observablehq.com/framework/lib/leaflet">Leaflet</a>, <a href="https://observablehq.com/framework/lib/dot">GraphViz</a>, <a href="https://observablehq.com/framework/lib/tex">TeX</a>, or <a href="https://observablehq.com/framework/lib/duckdb">DuckDB</a>.
-  </div>
-  <div class="card">
-    Ask for help, or share your work or ideas, on our <a href="https://github.com/observablehq/framework/discussions">GitHub discussions</a>.
-  </div>
-  <div class="card">
-    Visit <a href="https://github.com/observablehq/framework">Framework on GitHub</a> and give us a star. Or file an issue if you’ve found a bug!
-  </div>
-</div>
+  //const tooltipDiv = container.select(".tooltip")
+
+  // Create the SVG container.
+  const svg = container.append("svg")
+      .attr("viewBox", [0, 0, width, height])
+      .attr("width", width)
+      .attr("height", height)
+      .attr("style", "max-width: 100%; height: auto;")
+  
+  // Create the scales.
+  const x = d3.scaleBand()
+    .domain(d3.range(columns.length))
+    .rangeRound([0, columns.length*cellSize])
+
+  const y = d3.scaleBand()
+    .domain(d3.range(rows.length))
+    .rangeRound([0, rows.length*cellSize])
+
+  const color = config[options.variable].color_scale
+
+  const size = d3.scaleSqrt() // FIXME this is not centered, nor valid if negative
+    .domain([d3.min(sorted_data, d => d[options.size_variable]), d3.max(sorted_data, d => d[options.size_variable])])
+    .range([0, cellSize])
+  
+  /*  
+  // Append the axes.
+  svg.append("g")
+      .call(g => g.append("g")
+        .attr("transform", `translate(0,${marginTop})`)
+        .call(d3.axisTop(x).ticks(null, "d"))
+        .call(g => g.select(".domain").remove()))
+      .call(g => g.append("g")
+        .attr("transform", `translate(0,${height - marginBottom + 4})`)
+        .call(d3.axisBottom(x)
+            .tickValues([data.year])
+            .tickFormat(x => x)
+            .tickSize(marginTop + marginBottom - height - 10))
+        .call(g => g.select(".tick text")
+            .clone()
+            .attr("dy", "2em")
+            .style("font-weight", "bold")
+            .text("Measles vaccine introduced"))
+        .call(g => g.select(".domain").remove()));
+
+  svg.append("g")
+      .attr("transform", `translate(${marginLeft},0)`)
+      .call(d3.axisLeft(y).tickSize(0))
+      .call(g => g.select(".domain").remove());
+
+  // Create a cell for each (state, year) value.
+  const f = d3.format(",d");
+  const format = d => isNaN(d) ? "N/A cases"
+      : d === 0 ? "0 cases"
+      : d < 1 ? "<1 case"
+      : d < 1.5 ? "1 case"
+      : `${f(d)} cases`;
+  */
+
+  // data cells
+  svg.append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`)
+      .attr("style", "shape-rendering: crispEdges;")
+    .selectAll(".cell")
+    .data(sorted_data)
+    .join("rect")
+      .attr('class', 'cell')
+      .attr("y", (d, i) => y(d.row) + (cellSize - size(d[options.size_variable]))/2.0)
+      .attr("x", (d, i) => x(d.col) + (cellSize - size(d[options.size_variable]))/2.0)
+      .attr("width", d => size(d[options.size_variable]))
+      .attr("height", d => size(d[options.size_variable]))
+      .attr("fill", d => d[options.variable] === undefined ? 'transparent' : color(d[options.variable]))
+
+  // interaction cells
+  svg.append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`)
+    .selectAll(".icell")
+    .data(sorted_data)
+    .join("rect")
+      .attr('class', 'icell')
+      .attr("y", (d, i) => y(d.row))
+      .attr("x", (d, i) => x(d.col))
+      .attr("width", cellSize)
+      .attr("height", cellSize)
+      .attr("fill", 'transparent')
+      //.call(tooltip, tooltipDiv)
+  
+  // ticks
+  svg.append('g')
+    .attr("transform", `translate(${margin.left},${margin.top})`)
+    .selectAll('.label')
+    .data(sorted_rows)
+    .join('text')
+      .attr('class', 'label row')
+      .attr('x', -4)
+      .attr("y", (d, i) => y(i)+cellSize*0.7)
+      .text(d => d.split('_').slice(1).join(' '))
+      //.attr("fill", d => core.includes(d) ? 'brown' : '#444')
+    .append('title')
+      .text(d => d)
+  
+  svg.append('g')
+    .attr("transform", `translate(${margin.left},${margin.top})`)
+    .selectAll('.label')
+    .data(sorted_cols)
+    .join('text')
+      .attr('class', 'label col')
+      .attr('transform', 'rotate(-90)')
+      .attr('x', 4)
+      .attr("y", (d, i) => x(i)+cellSize*0.7)
+      .text(d => d.split('_').slice(1).join(' '))
+      //.attr("fill", d => core.includes(d) ? 'brown' : '#444')
+    .append('title')
+      .text(d => d)
+  
+  return container.node()
+}
+```
 
 <style>
+  .aside {
+    background: rgb(241, 239, 229);
+    padding: 12px;
+  }
+  .label {
+    user-select: none;
+    font-family: sans-serif;
+    font-size: 8px;
+  }
+  .label.row {
+    text-anchor: end;
+  }
+  .label:hover {
+    fill: magenta !important;
+  }
+  .icell:hover {
+    stroke: magenta;
+  }
+  .selected {
+    font-weight: bold;
+  }
+</style>
 
-.hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-family: var(--sans-serif);
-  margin: 4rem 0 8rem;
-  text-wrap: balance;
-  text-align: center;
-}
 
-.hero h1 {
-  margin: 1rem 0;
-  padding: 1rem 0;
-  max-width: none;
-  font-size: 14vw;
-  font-weight: 900;
-  line-height: 1;
-  background: linear-gradient(30deg, var(--theme-foreground-focus), currentColor);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
+```js
+const row_clustering = view(Inputs.form({
+  enabled: Inputs.toggle({label: "Cluster rows", value: true}),
+  distance_metric: Inputs.select(Object.keys(distance), {value: "euclidean", label: "Distance Metric"}),
+  method: Inputs.select(["ward","ward2","single", "complete", "average","upgma", "wpgma", "upgmc","wpgmc","median","centroid"], {value: "complete", label: "Cluster Method"})
+}))
+const col_clustering = view(Inputs.form({
+  enabled: Inputs.toggle({label: "Cluster columns", value: true}),
+  distance_metric: Inputs.select(Object.keys(distance), {value: "euclidean", label: "Distance Metric"}),
+  method: Inputs.select(["ward","ward2","single", "complete", "average","upgma", "wpgma", "upgmc","wpgmc","median","centroid"], {value: "complete", label: "Cluster Method"})
+}))
+```
 
-.hero h2 {
-  margin: 0;
-  max-width: 34em;
-  font-size: 20px;
-  font-style: initial;
-  font-weight: 500;
-  line-height: 1.5;
-  color: var(--theme-foreground-muted);
-}
+```js
+const data = view(Inputs.search(raw_data, {placeholder:'Filter'}))
+```
+```js
+// preprocess data
+const variables = data.columns.filter(d => !(['target', 'annotator'].includes(d)))
+const indexed_rows = d3.group(data, d => d.annotator, d => d.target)
+const indexed_cols = d3.group(data, d => d.target, d => d.annotator)
+const rows = Array.from(indexed_rows.keys())
+const columns = Array.from(indexed_cols.keys())
+```
 
-@media (min-width: 640px) {
-  .hero h1 {
-    font-size: 90px;
+```js
+// cluster data
+const data_matrix = d3.map(rows, row_k => d3.map(columns, col_k => {
+  const v = indexed_rows.get(row_k).get(col_k)
+  return v && v[0] // propagate undefined
+}))
+const value_matrix = d3.map(data_matrix, row => d3.map(row, d => d === undefined ? config[options.clustering_variable].no_data : d[options.clustering_variable])) // propagate undefined
+
+const row_ordering = !row_clustering.enabled ? d3.range(value_matrix.length) : (new hclust.agnes(value_matrix, {distanceFunction: distance[row_clustering.distance_metric], method: row_clustering.method})).indices()
+const row_sorted_matrix = row_ordering.map(i => value_matrix[i])
+const row_sorted_columns = d3.range(row_sorted_matrix[0].length).map(j => row_sorted_matrix.map(row => row[j]))
+const col_ordering = !col_clustering.enabled ? d3.range(value_matrix[0].length) : (new hclust.agnes(row_sorted_columns, {distanceFunction: distance[col_clustering.distance_metric], method: col_clustering.method})).indices()
+const sorted_matrix = row_sorted_matrix.map(row => col_ordering.map(j => row[j]) )
+const flat_matrix = sorted_matrix.map((row, i) => row.map((value, j) => ({row: i, col: j, value: value == config[options.clustering_variable].no_data ? undefined : value}) )).flat()
+const sorted_data = row_ordering.map((row,i) => col_ordering.map((col,j) => {
+  let o = data_matrix[row][col] || {}
+  o.row = i
+  o.col = j
+  o.row_label = rows[row]
+  o.col_label = columns[col]
+  return o
+})).flat()
+const sorted_rows = row_ordering.map(row => rows[row])
+const sorted_cols = col_ordering.map(col => columns[col])
+```
+
+```js
+// variables config
+const config = ({
+  cohen_k: {
+    no_data: 1,
+    color_scale: d3.scaleSequential()
+      .domain([-1, 1])
+      .interpolator(d3.interpolateRgbBasis(['#740208','#8E4C1E','#dBd756',"#fde725","#35b779","#31688e","#440154"])), // inverted Viridis with additional colors
+  },
+  intensity: {
+    no_data: 0,
+    color_scale: d3.scaleSequential()
+      .domain([-1, 1])
+      .interpolator(t => d3.interpolateRdYlBu(1-t)),
+  },
+  prevalence: {
+    no_data: 0,
+    color_scale: d3.scaleSequential()
+      .domain([0, 1])
+      .interpolator(t => d3.interpolateMagma(1-t)),
+  },
+  total: {
+    no_data: 0,
+    color_scale: d3.scaleSequential()
+      .domain([0, 1000000])
+      .interpolator(t => d3.interpolateMagma(1-t)),
+  }
+})
+```
+
+```js
+Inputs.table(data)
+```
+
+```js
+const tooltip_value_format = d => d && d.toLocaleString()
+const tooltip_data = d => ({
+  value: tooltip_value_format(d[options.variable]),
+  annotator: d.row_label,
+  target: d.col_label,
+  values: {
+    intensity: tooltip_value_format(d.intensity),
+    prevalence: tooltip_value_format(d.prevalence),
+    cohen_k: tooltip_value_format(d.cohen_k),
+    total: tooltip_value_format(d.total),
+  }
+})
+
+function setContents(datum, tooltipDiv) {
+  // customize this function to set the tooltip's contents however you see fit
+  /*tooltipDiv
+    .selectAll("p")
+    .data(Object.entries(tooltip_data(datum)).filter(([key, value]) => value !== null && value !== undefined))
+    .join("p")
+    .html(
+      ([key, value]) =>
+        `<strong>${key}</strong>: ${
+          typeof value === "object" ? value.toLocaleString("en-US") : value
+        }`
+    );*/
+  const d = tooltip_data(datum)
+  tooltipDiv.selectAll('p').remove()
+  if(d.value !== undefined) {
+    tooltipDiv.selectAll(".variables")
+      .data(Object.entries(d.values).filter(([key, value]) => value !== null && value !== undefined))
+      .join("p")
+      .html(
+        ([key, value]) =>
+          `<span class="${options.variable == key ? 'selected' : ''}">${key}: ${
+            typeof value === "object" ? value.toLocaleString("en-US") : value
+          }</span>`
+      )
+      .attr('class', 'variable')
+  }
+  else {
+    tooltipDiv.append('p').html(d.value !== undefined ? `<strong>${d.value}</strong>` : 'No data')
   }
 }
+```
 
-</style>
+```js
+// dependencies
+const hclust = (await import("https://cdn.skypack.dev/ml-hclust@3.1.0?min"))
+const distance = (await import("https://cdn.skypack.dev/ml-distance@3.0.0?min")).distance
+```
