@@ -16,7 +16,9 @@ toc: false
     <hr/>
     ${col_clustering_input}
   </div>
-  <div class="chart grid-colspan-3">${resize((width) => matrix_chart({width}))}</div>
+  <div class="chart grid-colspan-3">
+    ${resize((width) => matrix_chart({width}))}
+  </div>
 </div>
 
 <!-- Load and transform the data -->
@@ -27,19 +29,20 @@ let data = csv.map(d => ({...d, matrix_total: d.FF+d.FM+d.FT+d.MF+d.MM+d.MT+d.TF
 data.columns = csv.columns.concat(['matrix_total'])
 ```
 ```js
+const VARS = ['intensity','prevalence','cohen_k','matrix_total']
 const options_input = Inputs.form({
-  variable: Inputs.select(['intensity','prevalence','cohen_k','matrix_total'], {value: 'intensity', label: "Color by"}),
-  size_variable: Inputs.select(['intensity','prevalence','cohen_k','matrix_total'], {value: 'prevalence', label: "Scale by"}),
-  clustering_variable: Inputs.select(['intensity','prevalence','cohen_k','matrix_total'], {value: 'intensity', label: "Cluster by"}),
+  variable: Inputs.select(VARS, {value: 'intensity', label: "Color by"}),
+  size_variable: Inputs.select(VARS, {value: 'prevalence', label: "Scale by"}),
+  clustering_variable: Inputs.select(VARS, {value: 'intensity', label: "Cluster by"}),
+  cell_size: Inputs.range([4, 40], {value: 12, step: 1, label: "Cell size"})
 })
 const options = view(options_input)
 ```
 
 ```js
 // layout
-const cellSize = 12
-const margin = ({ top: 90, right: 1, bottom: 10, left: 90 })
-const height = rows.length*cellSize + margin.top + margin.bottom
+const margin = ({ top: options.cell_size*6, right: 1, bottom: 10, left: options.cell_size*6 })
+const height = rows.length*options.cell_size + margin.top + margin.bottom
 ```
 
 ```js
@@ -61,17 +64,17 @@ function matrix_chart({width} = {}) {
   // Create the scales.
   const x = d3.scaleBand()
     .domain(d3.range(columns.length))
-    .rangeRound([0, columns.length*cellSize])
+    .rangeRound([0, columns.length*options.cell_size])
 
   const y = d3.scaleBand()
     .domain(d3.range(rows.length))
-    .rangeRound([0, rows.length*cellSize])
+    .rangeRound([0, rows.length*options.cell_size])
 
   const color = config[options.variable].color_scale
 
   const size = d3.scaleSqrt() // FIXME this is not centered, nor valid if negative
-    .domain([d3.min(sorted_data, d => d[options.size_variable]), d3.max(sorted_data, d => d[options.size_variable])])
-    .range([0, cellSize])
+    .domain([0, Math.max( Math.abs(d3.max(sorted_data, d => d[options.size_variable])), Math.abs(d3.min(sorted_data, d => d[options.size_variable])) )])
+    .range([0, options.cell_size])
   
   /*  
   // Append the axes.
@@ -115,10 +118,10 @@ function matrix_chart({width} = {}) {
     .data(sorted_data)
     .join("rect")
       .attr('class', 'cell')
-      .attr("y", (d, i) => y(d.row) + (cellSize - size(d[options.size_variable]))/2.0)
-      .attr("x", (d, i) => x(d.col) + (cellSize - size(d[options.size_variable]))/2.0)
-      .attr("width", d => size(d[options.size_variable]))
-      .attr("height", d => size(d[options.size_variable]))
+      .attr("y", (d, i) => y(d.row) + (options.cell_size - size(Math.abs(d[options.size_variable])))/2.0)
+      .attr("x", (d, i) => x(d.col) + (options.cell_size - size(Math.abs(d[options.size_variable])))/2.0)
+      .attr("width", d => size(Math.abs(d[options.size_variable])))
+      .attr("height", d => size(Math.abs(d[options.size_variable])))
       .attr("fill", d => d[options.variable] === undefined ? 'transparent' : color(d[options.variable]))
 
   // interaction cells
@@ -130,8 +133,8 @@ function matrix_chart({width} = {}) {
       .attr('class', 'icell')
       .attr("y", (d, i) => y(d.row))
       .attr("x", (d, i) => x(d.col))
-      .attr("width", cellSize)
-      .attr("height", cellSize)
+      .attr("width", options.cell_size)
+      .attr("height", options.cell_size)
       .attr("fill", 'transparent')
       //.call(tooltip, tooltipDiv)
   
@@ -142,9 +145,10 @@ function matrix_chart({width} = {}) {
     .data(sorted_rows)
     .join('text')
       .attr('class', 'label row')
+      .style('font-size', `${Math.floor(options.cell_size*0.6)}px`)
       .attr('x', -4)
-      .attr("y", (d, i) => y(i)+cellSize*0.7)
-      .text(d => d.split('_').slice(1).join(' '))
+      .attr("y", (d, i) => y(i)+options.cell_size*0.7)
+      .text(d => d.split('_').slice(1).const Legend = await import("https://cdn.skypack.dev/d3-color-legend")join(' '))
       //.attr("fill", d => core.includes(d) ? 'brown' : '#444')
     .append('title')
       .text(d => d)
@@ -155,9 +159,10 @@ function matrix_chart({width} = {}) {
     .data(sorted_cols)
     .join('text')
       .attr('class', 'label col')
+      .style('font-size', `${Math.floor(options.cell_size*0.6)}px`)
       .attr('transform', 'rotate(-90)')
       .attr('x', 4)
-      .attr("y", (d, i) => x(i)+cellSize*0.7)
+      .attr("y", (d, i) => x(i)+options.cell_size*0.7)
       .text(d => d.split('_').slice(1).join(' '))
       //.attr("fill", d => core.includes(d) ? 'brown' : '#444')
     .append('title')
@@ -193,7 +198,6 @@ function matrix_chart({width} = {}) {
   .label {
     user-select: none;
     font-family: sans-serif;
-    font-size: 8px;
   }
   .label.row {
     text-anchor: end;
@@ -211,16 +215,17 @@ function matrix_chart({width} = {}) {
 
 
 ```js
+const METHODS = ["complete", "single", "average","median","centroid"]
 const row_clustering_input = Inputs.form({
   enabled: Inputs.toggle({label: "Cluster rows", value: true}),
-  distance_metric: Inputs.select(Object.keys(distance), {value: "euclidean", label: "Distance Metric"}),
-  method: Inputs.select(["ward","ward2","single", "complete", "average","upgma", "wpgma", "upgmc","wpgmc","median","centroid"], {value: "complete", label: "Cluster Method"})
+  distance_metric: Inputs.select(Object.keys(distances), {value: "euclidean", label: "Distance Metric"}),
+  method: Inputs.select(METHODS, {value: "complete", label: "Cluster Method"})
 })
 const row_clustering = view(row_clustering_input)
 const col_clustering_input = Inputs.form({
   enabled: Inputs.toggle({label: "Cluster columns", value: true}),
-  distance_metric: Inputs.select(Object.keys(distance), {value: "euclidean", label: "Distance Metric"}),
-  method: Inputs.select(["ward","ward2","single", "complete", "average","upgma", "wpgma", "upgmc","wpgmc","median","centroid"], {value: "complete", label: "Cluster Method"})
+  distance_metric: Inputs.select(Object.keys(distances), {value: "euclidean", label: "Distance Metric"}),
+  method: Inputs.select(METHODS, {value: "complete", label: "Cluster Method"})
 })
 const col_clustering = view(col_clustering_input)
 ```
@@ -248,10 +253,10 @@ const data_matrix = d3.map(rows, row_k => d3.map(columns, col_k => {
 }))
 const value_matrix = d3.map(data_matrix, row => d3.map(row, d => d === undefined ? config[options.clustering_variable].no_data : d[options.clustering_variable])) // propagate undefined
 
-const row_ordering = !row_clustering.enabled ? d3.range(value_matrix.length) : (new hclust.agnes(value_matrix, {distanceFunction: distance[row_clustering.distance_metric], method: row_clustering.method})).indices()
+const row_ordering = !row_clustering.enabled ? d3.range(value_matrix.length) : (new hclust.agnes(value_matrix, {distanceFunction: distances[row_clustering.distance_metric], method: row_clustering.method})).indices()
 const row_sorted_matrix = row_ordering.map(i => value_matrix[i])
 const row_sorted_columns = d3.range(row_sorted_matrix[0].length).map(j => row_sorted_matrix.map(row => row[j]))
-const col_ordering = !col_clustering.enabled ? d3.range(value_matrix[0].length) : (new hclust.agnes(row_sorted_columns, {distanceFunction: distance[col_clustering.distance_metric], method: col_clustering.method})).indices()
+const col_ordering = !col_clustering.enabled ? d3.range(value_matrix[0].length) : (new hclust.agnes(row_sorted_columns, {distanceFunction: distances[col_clustering.distance_metric], method: col_clustering.method})).indices()
 const sorted_matrix = row_sorted_matrix.map(row => col_ordering.map(j => row[j]) )
 const flat_matrix = sorted_matrix.map((row, i) => row.map((value, j) => ({row: i, col: j, value: value == config[options.clustering_variable].no_data ? undefined : value}) )).flat()
 const sorted_data = row_ordering.map((row,i) => col_ordering.map((col,j) => {
@@ -343,7 +348,21 @@ function setContents(datum, tooltipDiv) {
 ```
 
 ```js
+const distances = {
+  'euclidean': ml_distance.distance.euclidean,
+  'manhattan': ml_distance.distance.manhattan,
+  'chebyshev': ml_distance.distance.chebyshev,
+  'jaccard': ml_distance.distance.jaccard,
+  'cosine': (a,b) => 1 - ml_distance.similarity.cosine(a,b),
+}
+```
+
+```js
+Legend
+```
+
+```js
 // dependencies
-const hclust = (await import("https://cdn.skypack.dev/ml-hclust@3.1.0?min"))
-const distance = (await import("https://cdn.skypack.dev/ml-distance@3.0.0?min")).distance
+const hclust = await import("https://cdn.skypack.dev/ml-hclust@3.1.0?min")
+const ml_distance = await import("https://cdn.skypack.dev/ml-distance@4.0.1?min")
 ```
