@@ -4,8 +4,13 @@ toc: false
 
 <div class="grid grid-cols-4">
   <div class="aside">
-    <h2>Annotator-Target Hate Speech Biases</h2>
-    <div class="authors">Author One, Author Two, Author Three, Author Four</div>
+    <h2>Visualizing Hate Speech Biases</h2>
+    <div class="disclaimer">WORK IN PROGRESS</div>
+    <div class="authors">by Matteo Abrate and Clara Bacciu<br/>
+    10.6084/m9.figshare.27220917</div>
+    <hr/>
+    <div class="authors"><b>Companion visualization for:</b><br/>
+    Giorgi, T., Cima, L., Fagni, T., Avvenuti, M., & Cresci, S. (2024). <i>Human and LLM Biases in Hate Speech Annotations: A Socio-Demographic Analysis of Annotators and Targets.</i> <a href="https://arxiv.org/abs/2410.07991">arXiv preprint arXiv:2410.07991.</a></div>
     <hr/>
     ${filter_rows_input}
     ${filter_cols_input}
@@ -185,10 +190,15 @@ function matrix_chart({width} = {}) {
   }
   hr {
     padding: 12px;
+    padding-top: 6px;
+    padding-bottom: 6px;
     margin: 0;
   }
-  .authors {
+  .authors, .disclaimer {
     font-size: 12px;
+  }
+  .disclaimer {
+    color: red;
   }
   .chart {
     padding: 12px;
