@@ -6,8 +6,8 @@ toc: false
   <div class="aside">
     <h2>Visualizing Hate Speech Biases</h2>
     <div class="disclaimer">WORK IN PROGRESS</div>
-    <div class="authors">by Matteo Abrate and Clara Bacciu<br/>
-    10.6084/m9.figshare.27220917</div>
+    <div class="authors">by Matteo Abrate, Clara Bacciu and Lorenzo Cima<br/>
+    <a href="https://figshare.com/articles/software/Visualizing_Hate_Speech_Biases_-_Companion_visualization_for_the_scientific_paper_Human_and_LLM_Biases_in_Hate_Speech_Annotations_A_Socio-Demographic_Analysis_of_Annotators_and_Targets_/27220917?file=49766241">10.6084/m9.figshare.27220917</a></div>
     <hr/>
     <div class="authors"><b>Companion visualization for:</b><br/>
     Giorgi, T., Cima, L., Fagni, T., Avvenuti, M., & Cresci, S. (2024). <i>Human and LLM Biases in Hate Speech Annotations: A Socio-Demographic Analysis of Annotators and Targets.</i> <a href="https://arxiv.org/abs/2410.07991">arXiv preprint arXiv:2410.07991.</a></div>
