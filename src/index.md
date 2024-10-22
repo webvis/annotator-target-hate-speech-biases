@@ -32,7 +32,7 @@ let data = csv.map(d => ({...d, matrix_total: d.FF+d.FM+d.FT+d.MF+d.MM+d.MT+d.TF
 data.columns = csv.columns.concat(['matrix_total'])
 ```
 ```js
-const VARS = ['intensity','prevalence','cohen_k','matrix_total']
+const VARS = ['intensity','prevalence','cohen_k','p_value','comments','matrix_total']
 const options_input = Inputs.form({
   variable: Inputs.select(VARS, {value: 'intensity', label: "Color by"}),
   size_variable: Inputs.select(VARS, {value: 'prevalence', label: "Scale by"}),
@@ -300,11 +300,23 @@ const config = ({
       .domain([0, 1])
       .interpolator(t => d3.interpolateMagma(1-t)),
   },
+  p_value: {
+    no_data: 0,
+    color_scale: d3.scaleSequential()
+      .domain([0, d3.max(data, d => d.p_value)])
+      .interpolator(t => d3.interpolateCividis(1-t)),
+  },
+  comments: {
+    no_data: 0,
+    color_scale: d3.scaleSequential()
+      .domain([0, d3.max(data, d => d.comments)])
+      .interpolator(t => d3.interpolateWarm(1-t)),
+  },
   matrix_total: {
     no_data: 0,
     color_scale: d3.scaleSequential()
       .domain([0, d3.max(data, d => d.matrix_total)])
-      .interpolator(t => d3.interpolateMagma(1-t)),
+      .interpolator(t => d3.interpolateCool(1-t)),
   }
 })
 ```
