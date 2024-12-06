@@ -50,6 +50,7 @@ const options = view(options_input)
 ```js
 const legend = Legend(config[options.variable].color_scale, {
   title: options.variable,
+  tickFormat: config[options.variable].tickFormat,
 })
 ```
 
@@ -63,10 +64,10 @@ const height = rows.length*options.cell_size + margin.top + margin.bottom
 function matrix_chart({width} = {}) {
   // Create an HTML container to hold the tooltip
   const container = d3.select(
-    html`<div style="position:relative;"></div>`
+    html`<div style="position:relative;">${tooltipTemplate}</div>`
   )
 
-  //const tooltipDiv = container.select(".tooltip")
+  const tooltipDiv = container.select(".tooltip")
 
   // Create the SVG container.
   const svg = container.append("svg")
@@ -150,7 +151,7 @@ function matrix_chart({width} = {}) {
       .attr("width", options.cell_size)
       .attr("height", options.cell_size)
       .attr("fill", 'transparent')
-      //.call(tooltip, tooltipDiv)
+      .call(tooltip, tooltipDiv)
   
   // ticks
   svg.append('g')
@@ -304,18 +305,21 @@ const config = ({
   },
   intensity: {
     no_data: 0,
+    tickFormat: '',
     color_scale: d3.scaleSequential()
       .domain([-1, 1])
       .interpolator(t => d3.interpolateRdYlBu(1-t)),
   },
   prevalence: {
     no_data: 0,
+    tickFormat: '',
     color_scale: d3.scaleSequential()
       .domain([0, 1])
       .interpolator(t => d3.interpolateMagma(1-t)),
   },
   p_value: {
     no_data: 0,
+    tickFormat: '',
     color_scale: d3.scaleSequential()
       .domain([0, d3.max(data, d => d.p_value)])
       .nice(true)
@@ -323,6 +327,7 @@ const config = ({
   },
   comments: {
     no_data: 0,
+    tickFormat: '~s',
     color_scale: d3.scaleSequential()
       .domain([0, d3.max(data, d => d.comments)])
       .nice(true)
@@ -330,7 +335,8 @@ const config = ({
   },
   matrix_total: {
     no_data: 0,
-    color_scale: d3.scaleSequential()
+    tickFormat: '~s',
+    color_scale: d3.scaleSequentialSqrt()
       .domain([0, d3.max(data, d => d.matrix_total)])
       .nice(true)
       .interpolator(t => d3.interpolateCool(1-t)),
@@ -340,6 +346,9 @@ const config = ({
 
 ```js
 const tooltip_value_format = d => d && d.toLocaleString()
+```
+
+```js
 const tooltip_data = d => ({
   value: tooltip_value_format(d[options.variable]),
   annotator: d.row_label,
@@ -348,10 +357,14 @@ const tooltip_data = d => ({
     intensity: tooltip_value_format(d.intensity),
     prevalence: tooltip_value_format(d.prevalence),
     cohen_k: tooltip_value_format(d.cohen_k),
+    p_value: tooltip_value_format(d.p_value),
+    comments: tooltip_value_format(d.comments),
     matrix_total: tooltip_value_format(d.matrix_total),
   }
 })
+```
 
+```js
 function setContents(datum, tooltipDiv) {
   // customize this function to set the tooltip's contents however you see fit
   /*tooltipDiv
@@ -366,6 +379,13 @@ function setContents(datum, tooltipDiv) {
     );*/
   const d = tooltip_data(datum)
   tooltipDiv.selectAll('p').remove()
+  tooltipDiv.selectAll('hr').remove()
+  
+  tooltipDiv.append('p')
+    .html(`<strong>${d.annotator}</strong> -> <strong>${d.target}</strong>`)
+  
+  tooltipDiv.append('hr')
+
   if(d.value !== undefined) {
     tooltipDiv.selectAll(".variables")
       .data(Object.entries(d.values).filter(([key, value]) => value !== null && value !== undefined))
@@ -550,4 +570,123 @@ function Legend(color, {
   
     return svg.node();
   }
+```
+
+```js
+const tooltip = (selectionGroup, tooltipDiv) => {
+  selectionGroup.each(function () {
+    d3.select(this)
+      .on("mouseover.tooltip", handleMouseover)
+      .on("mousemove.tooltip", handleMousemove)
+      .on("mouseleave.tooltip", handleMouseleave);
+  });
+
+  function handleMouseover() {
+    // show/reveal the tooltip, set its contents,
+    // style the element being hovered on
+    showTooltip();
+    setContents(d3.select(this).datum(), tooltipDiv);
+    setStyle(d3.select(this));
+  }
+
+  function handleMousemove(event) {
+    // update the tooltip's position
+    const [mouseX, mouseY] = d3.pointer(event, this);
+    // add the left & top margin values to account for the SVG g element transform
+    setPosition(mouseX + margin.left, mouseY + margin.top);
+  }
+
+  function handleMouseleave() {
+    // do things like hide the tooltip
+    // reset the style of the element being hovered on
+    hideTooltip();
+    resetStyle(d3.select(this));
+  }
+
+  function showTooltip() {
+    tooltipDiv.style("display", "block");
+  }
+
+  function hideTooltip() {
+    tooltipDiv.style("display", "none");
+  }
+
+  function setPosition(mouseX, mouseY) {
+    tooltipDiv
+      .style(
+        "top",
+        mouseY < height / 2 ? `${mouseY + MOUSE_POS_OFFSET}px` : "initial"
+      )
+      .style(
+        "right",
+        mouseX > width / 2
+          ? `${width - mouseX + MOUSE_POS_OFFSET}px`
+          : "initial"
+      )
+      .style(
+        "bottom",
+        mouseY > height / 2
+          ? `${height - mouseY + MOUSE_POS_OFFSET}px`
+          : "initial"
+      )
+      .style(
+        "left",
+        mouseX < width / 2 ? `${mouseX + MOUSE_POS_OFFSET}px` : "initial"
+      );
+  }
+}
+```
+
+```js
+const tooltipTemplate = html`<div class="tooltip tooltip-${tooltipId}">
+  ${tooltipStyles}
+  <div class="tooltip-contents"></div>
+</div>`
+```
+
+```js
+const tooltipId = 42
+```
+
+```js
+const tooltipStyles = htl.html`<style>
+  /* modify these styles to however you see fit */
+  div.tooltip-${tooltipId} {
+    box-sizing: border-box;
+    position: absolute;
+    display: none;
+    top: 0;
+    left: -100000000px;
+    padding: 8px 12px;
+    font-family: sans-serif;
+    font-size: 12px;
+    color: #333;
+    background-color: #fff;
+    border: 1px solid #333;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 1;
+  }
+  div.tooltip-${tooltipId} p {
+    margin: 0;
+  }
+</style>`
+```
+
+```js
+const MOUSE_POS_OFFSET = 8
+```
+
+```js
+function nop(selection) {
+  // do nothing, override tooltip lib default
+}
+```
+
+```js
+const setStyle = nop
+```
+
+```js
+const resetStyle = nop
 ```
