@@ -261,10 +261,12 @@ const data_matrix = d3.map(rows, row_k => d3.map(columns, col_k => {
 }))
 const value_matrix = d3.map(data_matrix, row => d3.map(row, d => d === undefined ? config[options.clustering_variable].no_data : d[options.clustering_variable])) // propagate undefined
 
-const row_ordering = !row_clustering.enabled ? d3.range(value_matrix.length) : (new hclust.agnes(value_matrix, {distanceFunction: distances[row_clustering.distance_metric], method: row_clustering.method})).indices()
+const agnes_rows = new hclust.agnes(value_matrix, {distanceFunction: distances[row_clustering.distance_metric], method: row_clustering.method})
+const row_ordering = typeof agnes_rows.indices !== 'function' ? [] : !row_clustering.enabled ? d3.range(value_matrix.length) : agnes_rows.indices()
 const row_sorted_matrix = row_ordering.map(i => value_matrix[i])
-const row_sorted_columns = d3.range(row_sorted_matrix[0].length).map(j => row_sorted_matrix.map(row => row[j]))
-const col_ordering = !col_clustering.enabled ? d3.range(value_matrix[0].length) : (new hclust.agnes(row_sorted_columns, {distanceFunction: distances[col_clustering.distance_metric], method: col_clustering.method})).indices()
+const row_sorted_columns = row_sorted_matrix.length === 0 ? [] : d3.range(row_sorted_matrix[0].length).map(j => row_sorted_matrix.map(row => row[j]))
+const agnes_cols = new hclust.agnes(row_sorted_columns, {distanceFunction: distances[col_clustering.distance_metric], method: col_clustering.method})
+const col_ordering = typeof agnes_cols.indices !== 'function' ? [] : !col_clustering.enabled ? d3.range(value_matrix[0].length) : agnes_cols.indices()
 const sorted_matrix = row_sorted_matrix.map(row => col_ordering.map(j => row[j]) )
 const flat_matrix = sorted_matrix.map((row, i) => row.map((value, j) => ({row: i, col: j, value: value == config[options.clustering_variable].no_data ? undefined : value}) )).flat()
 const sorted_data = row_ordering.map((row,i) => col_ordering.map((col,j) => {
