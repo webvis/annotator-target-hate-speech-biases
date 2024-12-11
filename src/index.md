@@ -40,6 +40,7 @@ data.columns = csv.columns.concat(['matrix_total'])
 const VARS = ['intensity','prevalence','cohen_k','p_value','comments','matrix_total']
 const options_input = Inputs.form({
   variable: Inputs.select(VARS, {value: 'intensity', label: "Color by"}),
+  quantize: Inputs.toggle({value: true, label: "Quantize"}),
   size_variable: Inputs.select(VARS, {value: 'prevalence', label: "Scale by"}),
   clustering_variable: Inputs.select(VARS, {value: 'intensity', label: "Cluster by"}),
   cell_size: Inputs.range([4, 40], {value: 12, step: 1, label: "Cell size"})
@@ -295,35 +296,60 @@ const sorted_cols = col_ordering.map(col => columns[col])
 
 ```js
 // variables config
+
+// inverted Viridis with additional colors
+const iviridis_plus = d3.interpolateRgbBasis(['#740208','#8E4C1E','#dBd756',"#fde725","#35b779","#31688e","#440154"])
+
 const config = ({
   cohen_k: {
     no_data: 1,
-    color_scale: d3.scaleSequential()
-      .domain([-1, 1])
-      .interpolator(d3.interpolateRgbBasis(['#740208','#8E4C1E','#dBd756',"#fde725","#35b779","#31688e","#440154"])), // inverted Viridis with additional colors
+    color_scale: options.quantize ?
+      d3.scaleQuantize()
+        .domain([-1, 1])
+        .range(d3.schemeBuPu[5].slice(1,5).reverse().concat(d3.schemeYlGn[5].slice(1,5)))
+    :
+      d3.scaleSequential()
+        .domain([-1, 1])
+        .interpolator(t => t < 0.5 ? d3.interpolateBuPu(1-t*1.5) : d3.interpolateYlGn((t-0.25)*1.5)), 
       
   },
   intensity: {
     no_data: 0,
-    tickFormat: '',
-    color_scale: d3.scaleSequential()
-      .domain([-1, 1])
-      .interpolator(t => d3.interpolateRdYlBu(1-t)),
+    tickFormat: '.2f',
+    color_scale: options.quantize ?
+      d3.scaleQuantize()
+        .domain([-1, 1])
+        .range(d3.schemeRdYlBu[8].slice().reverse())
+    :
+      d3.scaleSequential()
+        .domain([-1, 1])
+        .interpolator(t => d3.interpolateRdYlBu(1-t)),
   },
   prevalence: {
     no_data: 0,
     tickFormat: '',
-    color_scale: d3.scaleSequential()
-      .domain([0, 1])
-      .interpolator(t => d3.interpolateMagma(1-t)),
+    color_scale: options.quantize ?
+      d3.scaleQuantize()
+        .domain([0, 1])
+        .range(d3.range(5).map(i => d3.interpolateMagma(1-i/5)))
+    :
+      d3.scaleSequential()
+        .domain([0, 1])
+        .interpolator(t => d3.interpolateMagma(1-t)),
   },
   p_value: {
     no_data: 0,
     tickFormat: '',
-    color_scale: d3.scaleSequential()
-      .domain([0, d3.max(data, d => d.p_value)])
-      .nice(true)
-      .interpolator(t => d3.interpolateCividis(1-t)),
+    color_scale: options.quantize ?
+      d3.scaleQuantize()
+        .domain([0, d3.max(data, d => d.p_value)])
+        .range(d3.range(5).map(i => d3.interpolateCividis(1-i/5)))
+        .nice(true)
+    :
+      d3.scaleSequential()
+        .domain([0, d3.max(data, d => d.p_value)])
+        .nice(true)
+        .interpolator(t => d3.interpolateCividis(1-t)),
   },
   comments: {
     no_data: 0,
@@ -504,7 +530,7 @@ function Legend(color, {
     // Threshold
     else if (color.invertExtent) {
       const thresholds
-          = color.thresholds ? color.thresholds() // scaleQuantize
+          = color.thresholds ? [color.domain()[0]].concat(color.thresholds()).concat([color.domain()[1]]) // scaleQuantize WARNING modified
           : color.quantiles ? color.quantiles() // scaleQuantile
           : color.domain(); // scaleThreshold
   
@@ -526,9 +552,9 @@ function Legend(color, {
           .attr("width", (d, i) => x(i) - x(i - 1))
           .attr("height", height - marginTop - marginBottom)
           .attr("fill", d => d);
-  
-      tickValues = d3.range(thresholds.length);
-      tickFormat = i => thresholdFormat(thresholds[i], i);
+
+      tickValues = d3.range(-1, thresholds.length-1); // WARNING modified
+      tickFormat = i => thresholdFormat(thresholds[i+1], i); // WARNING modified
     }
   
     // Ordinal
