@@ -5,12 +5,29 @@ toc: false
 <div class="grid grid-cols-4">
   <div class="aside">
     <h2>Visualizing Hate Speech Biases</h2>
-    <div class="disclaimer">WORK IN PROGRESS</div>
+    <!--<div class="disclaimer">WORK IN PROGRESS</div>-->
     <div class="authors">by Matteo Abrate, Clara Bacciu and Lorenzo Cima<br/>
     <a href="https://figshare.com/articles/software/Visualizing_Hate_Speech_Biases_-_Companion_visualization_for_the_scientific_paper_Human_and_LLM_Biases_in_Hate_Speech_Annotations_A_Socio-Demographic_Analysis_of_Annotators_and_Targets_/27220917?file=49766241">10.6084/m9.figshare.27220917</a></div>
     <hr/>
     <div class="authors"><b>Companion visualization for:</b><br/>
     Giorgi, T., Cima, L., Fagni, T., Avvenuti, M., & Cresci, S. (2024). <i>Human and LLM Biases in Hate Speech Annotations: A Socio-Demographic Analysis of Annotators and Targets.</i> <a href="https://arxiv.org/abs/2410.07991">arXiv preprint arXiv:2410.07991.</a></div>
+    <hr/>
+    <div class="details_title">Metrics</div>
+    <div class="details">
+      <dl>
+        <dt>Intensity</dt>
+        <dd>Represents both the direction and strength of bias in annotations. It ranges from -1 (a strong tendency to underestimate hate speech towards individuals with different socio-demographic characteristics) to +1 (a strong tendency to overestimate hate speech). A value close to 0 suggests little to no bias.</dd>
+        <dt>Prevalence</dt>
+        <dd>Indicates how frequently bias appears in the annotation process. It ranges from 0 (no bias present) to 1 (bias is present in all cases).</dd>
+        <dt>Agreement</dt>
+        <dd>Measures how consistently annotators agree on their assessments, calculated using Cohen’s Kappa statistic.</dd>
+        <dt>Significance</dt>
+        <dd>Represents the statistical significance of the bias test applied to the annotations. A lower p-value suggests stronger evidence of significant bias.</dd>
+        <dt>Unique Comments</dt>
+        <dd>The total number of distinct comments that have been annotated.
+     Annotations: The total number of annotations made across all comments.</dd>
+       </dl>
+    </div>
     <hr/>
     ${filter_rows_input}
     ${filter_cols_input}
@@ -207,7 +224,7 @@ function matrix_chart({width} = {}) {
     padding-bottom: 6px;
     margin: 0;
   }
-  .authors, .disclaimer {
+  .authors, .disclaimer, .details_title, .details {
     font-size: 12px;
   }
   .disclaimer {
@@ -231,6 +248,24 @@ function matrix_chart({width} = {}) {
   }
   .selected {
     font-weight: bold;
+  }
+  .details_title {
+    font-weight: bold;
+    text-align: center;
+  }
+  .details {
+    overflow-y: scroll;
+    height: 100px;
+  }
+  dl {
+    margin-top: 0;
+  }
+  dt {
+    font-weight: bold;
+  }
+  dd {
+    margin-left: 12px;
+    margin-bottom: 6px;
   }
 </style>
 
