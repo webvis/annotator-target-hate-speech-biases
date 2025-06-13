@@ -426,10 +426,10 @@ const tooltip_data = d => ({
   values: {
     intensity: tooltip_value_format(d.intensity),
     prevalence: tooltip_value_format(d.prevalence),
-    agreement: tooltip_value_format(d.cohen_k),
-    significance: tooltip_value_format(d.p_value),
-    "unique comments": tooltip_value_format(d.comments),
-    annotations: tooltip_value_format(d.matrix_total),
+    cohen_k: tooltip_value_format(d.cohen_k),
+    p_value: tooltip_value_format(d.p_value),
+    comments: tooltip_value_format(d.comments),
+    matrix_total: tooltip_value_format(d.matrix_total),
   }
 })
 ```
@@ -462,7 +462,7 @@ function setContents(datum, tooltipDiv) {
       .join("p")
       .html(
         ([key, value]) =>
-          `<span class="${options.variable == key ? 'selected' : ''}">${key}: ${
+          `<span class="${options.variable == key ? 'selected' : ''}">${readable(key)}: ${
             typeof value === "object" ? value.toLocaleString("en-US") : value
           }</span>`
       )
