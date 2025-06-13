@@ -24,9 +24,10 @@ toc: false
         <dt>Significance</dt>
         <dd>Represents the statistical significance of the bias test applied to the annotations. A lower p-value suggests stronger evidence of significant bias.</dd>
         <dt>Unique Comments</dt>
-        <dd>The total number of distinct comments that have been annotated.
-     Annotations: The total number of annotations made across all comments.</dd>
-       </dl>
+        <dd>The total number of distinct comments that have been annotated.</dd>
+        <dt>Annotations</dt>
+        <dd>The total number of annotations made across all comments.</dd>
+      </dl>
     </div>
     <hr/>
     ${filter_rows_input}
@@ -55,11 +56,19 @@ data.columns = csv.columns.concat(['matrix_total'])
 ```
 ```js
 const VARS = ['intensity','prevalence','cohen_k','p_value','comments','matrix_total']
+const readable = (d) => ({
+  'intensity': 'intensity',
+  'prevalence': 'prevalence',
+  'cohen_k': 'agreement',
+  'p_value': 'significance',
+  'comments': 'unique comments',
+  'matrix_total': 'annotations'
+})[d]
 const options_input = Inputs.form({
-  variable: Inputs.select(VARS, {value: 'intensity', label: "Color by"}),
+  variable: Inputs.select(VARS, {value: 'intensity', label: "Color by", format: readable}),
   quantize: Inputs.toggle({value: true, label: "Quantize"}),
-  size_variable: Inputs.select(VARS, {value: 'prevalence', label: "Scale by"}),
-  clustering_variable: Inputs.select(VARS, {value: 'intensity', label: "Cluster by"}),
+  size_variable: Inputs.select(VARS, {value: 'prevalence', label: "Scale by", format: readable}),
+  clustering_variable: Inputs.select(VARS, {value: 'intensity', label: "Cluster by", format: readable}),
   cell_size: Inputs.range([4, 40], {value: 12, step: 1, label: "Cell size"})
 })
 const options = view(options_input)
@@ -67,7 +76,7 @@ const options = view(options_input)
 
 ```js
 const legend = Legend(config[options.variable].color_scale, {
-  title: options.variable,
+  title: readable(options.variable),
   tickFormat: config[options.variable].tickFormat,
 })
 ```
@@ -417,10 +426,10 @@ const tooltip_data = d => ({
   values: {
     intensity: tooltip_value_format(d.intensity),
     prevalence: tooltip_value_format(d.prevalence),
-    cohen_k: tooltip_value_format(d.cohen_k),
-    p_value: tooltip_value_format(d.p_value),
-    comments: tooltip_value_format(d.comments),
-    matrix_total: tooltip_value_format(d.matrix_total),
+    agreement: tooltip_value_format(d.cohen_k),
+    significance: tooltip_value_format(d.p_value),
+    "unique comments": tooltip_value_format(d.comments),
+    annotations: tooltip_value_format(d.matrix_total),
   }
 })
 ```
