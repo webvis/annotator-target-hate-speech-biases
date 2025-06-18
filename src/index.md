@@ -10,7 +10,7 @@ toc: false
     <a href="https://figshare.com/articles/software/Visualizing_Hate_Speech_Biases_-_Companion_visualization_for_the_scientific_paper_Human_and_LLM_Biases_in_Hate_Speech_Annotations_A_Socio-Demographic_Analysis_of_Annotators_and_Targets_/27220917?file=49766241">10.6084/m9.figshare.27220917</a></div>
     <hr/>
     <div class="authors"><b>Companion visualization for:</b><br/>
-    Giorgi, T., Cima, L., Fagni, T., Avvenuti, M., & Cresci, S. (2024). <i>Human and LLM Biases in Hate Speech Annotations: A Socio-Demographic Analysis of Annotators and Targets.</i> <a href="https://arxiv.org/abs/2410.07991">arXiv preprint arXiv:2410.07991.</a></div>
+    Giorgi, T., Cima, L., Fagni, T., Avvenuti, M., & Cresci, S. (2025, June). <i>Human and LLM biases in hate speech annotations: A socio-demographic analysis of annotators and targets.</i> In Proceedings of the International AAAI Conference on Web and Social Media. DOI: <a href="https://doi.org/10.1609/icwsm.v19i1.35837">https://doi.org/10.1609/icwsm.v19i1.35837</a></div>
     <hr/>
     <div class="details_title">Metrics</div>
     <div class="details">
