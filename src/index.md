@@ -22,7 +22,7 @@ toc: false
         <dt>Agreement</dt>
         <dd>Measures how consistently annotators agree on their assessments, calculated using Cohen’s Kappa statistic.</dd>
         <dt>Significance</dt>
-        <dd>Represents the statistical significance of the bias test applied to the annotations. A lower p-value suggests stronger evidence of significant bias.</dd>
+        <dd>P-value. Represents the statistical significance of the bias test applied to the annotations. A lower p-value suggests stronger evidence of significant bias.</dd>
         <dt>Unique Comments</dt>
         <dd>The total number of distinct comments that have been annotated.</dd>
         <dt>Annotations</dt>
@@ -32,6 +32,7 @@ toc: false
     <hr/>
     ${filter_rows_input}
     ${filter_cols_input}
+    ${significance_threshold_input}
     <hr/>
     ${options_input}
     <hr/>
@@ -165,6 +166,7 @@ function matrix_chart({width} = {}) {
       .attr("width", d => size(Math.abs(d[options.size_variable])))
       .attr("height", d => size(Math.abs(d[options.size_variable])))
       .attr("fill", d => d[options.variable] === undefined ? 'transparent' : color(d[options.variable]))
+      .attr("visibility", d => d.p_value <= significance_threshold ? 'visible' : 'hidden')
 
   // interaction cells
   svg.append("g")
@@ -282,13 +284,13 @@ function matrix_chart({width} = {}) {
 ```js
 const METHODS = ["complete", "single", "average","median","centroid"]
 const row_clustering_input = Inputs.form({
-  enabled: Inputs.toggle({label: "Cluster rows", value: true}),
+  enabled: Inputs.toggle({label: "Cluster rows", value: false}),
   distance_metric: Inputs.select(Object.keys(distances), {value: "euclidean", label: "Distance Metric"}),
   method: Inputs.select(METHODS, {value: "complete", label: "Cluster Method"})
 })
 const row_clustering = view(row_clustering_input)
 const col_clustering_input = Inputs.form({
-  enabled: Inputs.toggle({label: "Cluster columns", value: true}),
+  enabled: Inputs.toggle({label: "Cluster columns", value: false}),
   distance_metric: Inputs.select(Object.keys(distances), {value: "euclidean", label: "Distance Metric"}),
   method: Inputs.select(METHODS, {value: "complete", label: "Cluster Method"})
 })
@@ -300,14 +302,20 @@ const filter_rows_input = Inputs.search(all_rows, {placeholder:'Filter annotator
 const rows = view(filter_rows_input)
 const filter_cols_input = Inputs.search(all_columns, {placeholder:'Filter targets'})
 const columns = view(filter_cols_input)
+
+const significance_threshold_input = Inputs.range([0, d3.max(data, d => d.p_value)], {value: 0.1, step: 0.01, label: "Significance threshold"})
+const significance_threshold = view(significance_threshold_input)
 ```
 ```js
 // preprocess data
 const variables = data.columns.filter(d => !(['target', 'annotator'].includes(d)))
 const indexed_rows = d3.group(data, d => d.annotator, d => d.target)
 const indexed_cols = d3.group(data, d => d.target, d => d.annotator)
-const all_rows = Array.from(indexed_rows.keys())
-const all_columns = Array.from(indexed_cols.keys())
+const all_rows = ["age_teenagers","age_young_adults","age_middle_aged","age_seniors","gender_men","gender_non_binary","gender_transgender_men","gender_transgender_unspecified","gender_transgender_women","gender_women","race_asian","race_black","race_latinx","race_middle_eastern","race_native_american","race_pacific_islander","race_white","religion_atheist","religion_buddhist","religion_christian","religion_hindu","religion_jewish","religion_mormon","religion_muslim","sexuality_bisexual","sexuality_gay","sexuality_lesbian","sexuality_straight","education_some_high_school","education_high_school_grad","education_some_college","education_college_grad_aa","education_college_grad_ba","education_masters","education_professional_degree","education_phd","ideology_slightly_liberal","ideology_liberal","ideology_neutral","ideology_slightly_conservative","ideology_conservative","ideology_extremeley_conservative","ideology_no_opinion","income_<10k","income_10k-50k","income_50k-100k","income_100k-200k","income_>200k"] // ordered as in the paper
+const all_columns = ["age_teenagers","age_young_adults","age_middle_aged","age_seniors","gender_men","gender_non_binary","gender_transgender_men","gender_transgender_unspecified","gender_transgender_women","gender_women","race_asian","race_black","race_latinx","race_middle_eastern","race_native_american","race_pacific_islander","race_white","religion_atheist","religion_buddhist","religion_christian","religion_hindu","religion_jewish","religion_mormon","religion_muslim","sexuality_bisexual","sexuality_gay","sexuality_lesbian","sexuality_straight","disability_cognitive","disability_hearing_impaired","disability_neurological","disability_physical","disability_visually_impaired","disability_unspecific","origin_immigrant","origin_migrant_worker","origin_specific_country","origin_undocumented"] // ordered as in the paper
+```
+```js
+all_rows.toString()
 ```
 
 ```js
