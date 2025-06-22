@@ -315,10 +315,6 @@ const all_rows = ["age_teenagers","age_young_adults","age_middle_aged","age_seni
 const all_columns = ["age_teenagers","age_young_adults","age_middle_aged","age_seniors","gender_men","gender_non_binary","gender_transgender_men","gender_transgender_unspecified","gender_transgender_women","gender_women","race_asian","race_black","race_latinx","race_middle_eastern","race_native_american","race_pacific_islander","race_white","religion_atheist","religion_buddhist","religion_christian","religion_hindu","religion_jewish","religion_mormon","religion_muslim","sexuality_bisexual","sexuality_gay","sexuality_lesbian","sexuality_straight","disability_cognitive","disability_hearing_impaired","disability_neurological","disability_physical","disability_visually_impaired","disability_unspecific","origin_immigrant","origin_migrant_worker","origin_specific_country","origin_undocumented"] // ordered as in the paper
 ```
 ```js
-all_rows.toString()
-```
-
-```js
 // cluster data
 const data_matrix = d3.map(rows, row_k => d3.map(columns, col_k => {
   const v = indexed_rows.get(row_k).get(col_k)
